@@ -15,13 +15,13 @@ Currently this program is single-thread and heavily rely to bash script.
 
 As far as I know, the build process is like this:
 
-[x] Get source code (commonly from Remote repository)
-[x] Install dependencies (cached deps is better, right?)
-[x] Since this is not a CI platform™, we skip the `test` stage ;)
-[1/2] Build the project (incremental build is better)
-[x] Save cache (both for deps & cache artifacts)
-[ ] Uplaod artifacts
-[ ] Handle error signal from docker
+- [x] Get source code (commonly from Remote repository)
+- [x] Install dependencies (cached deps is better, right?)
+- [x] Since this is not a CI platform™, we skip the `test` stage ;)
+- [ ] Build the project (incremental build is better)
+- [x] Save cache (both for deps & cache artifacts)
+- [ ] Upload artifacts
+- [ ] Handle error signal from docker
 
 This is still work in progress, so the example payload can be find on `main.rs`.
 
