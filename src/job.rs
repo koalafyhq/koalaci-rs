@@ -26,7 +26,7 @@ impl Job {
     repo_url: String,
     build_command: String,
     package_manager: String,
-    dist_directpry: String,
+    dist_directory: String,
   ) -> Job {
     Job {
       redis,
@@ -36,7 +36,7 @@ impl Job {
       project_repo_url: repo_url,
       project_build_command: build_command,
       project_package_manager: package_manager,
-      project_dist_directory: dist_directpry,
+      project_dist_directory: dist_directory,
     }
   }
 
@@ -121,12 +121,13 @@ impl Job {
       .spawn()
       .expect("failed to execute process");
 
-    let stdout = cmd.stdout.take().expect("OK");
+    let stdout = cmd.stdout.take().expect("echo-ing to stdout");
 
     let _result: Vec<()> = BufReader::new(stdout)
       .lines()
       .map(|line| {
         let line = line.unwrap();
+
         info!("{}", line);
         self.save_log_to_redis(line);
       })

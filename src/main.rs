@@ -1,6 +1,5 @@
 #[macro_use]
 extern crate log;
-extern crate redis;
 
 mod job;
 mod redis_instance;
