@@ -1,27 +1,22 @@
 #[macro_use]
 extern crate log;
 
-mod job;
-mod redis_instance;
+mod controllers;
+mod middlewares;
+mod models;
+mod routers;
 
-// TODO: make this as a web service
+use warp::Filter;
+
 #[tokio::main]
 async fn main() {
     env_logger::init();
 
-    let redis_instance = redis_instance::connect_redis();
+    let with_model = models::Model::new();
+    let routers = routers::new(with_model);
+    let app = routers.with(warp::log("koalaci"));
 
-    // for example
-    let mut example_job = job::Job::new(
-        redis_instance, // TODO: handle better way for this
-        String::from("p_ke4guri8dh2pgpx"),
-        String::from("d_fj2icskbtuo9odz"),
-        String::from("master"),
-        String::from("https://github.com/evilfactorylabs/alchemy.git"),
-        String::from("'npm run build && npm run export'"),
-        String::from("npm"),
-        String::from("out"),
-    );
+    warp::serve(app).run(([127, 0, 0, 1], 8081)).await;
 
-    example_job.run().await;
+    info!("Server run on http://localhost:8081");
 }
