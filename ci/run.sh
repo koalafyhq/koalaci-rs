@@ -5,6 +5,7 @@ set -Eeuo pipefail
 trap 'exit' ERR
 
 DOCKER_ENVS=${1}
-BUILD_COMMAND=${2}
+DEPLOYMENT_ID=${2}
+BUILD_COMMAND=${3}
 
-docker run --rm $DOCKER_ENVS -v ~/koalaci_cache:/tmp koalaci:latest $BUILD_COMMAND
+docker run --rm --name koalaci_$DEPLOYMENT_ID $DOCKER_ENVS -v ~/koalaci_cache:/tmp koalaci:latest $BUILD_COMMAND

@@ -32,25 +32,35 @@ impl Job {
     let mut db = self.db.lock().unwrap();
     let result: String = db.get(job).unwrap_or("".to_string());
 
-    result != "" && result == "BUILDING"
+    result == "BUILDING"
   }
 
-  pub fn update_job_status(&self, user_id: &String, payload: &Deployment, status: String) {
-    let job = format!("deployment:{}:{}", user_id, payload.deployment_id);
+  pub fn update_job_status(&self, user_id: &String, deployment_id: &String, status: String) {
+    let job = format!("deployment:{}:{}", user_id, deployment_id);
 
     let mut db = self.db.lock().unwrap();
     let _: () = db.set(job, status).unwrap();
   }
 
-  pub fn write_log(&self, user_id: &String, payload: &Deployment, line: String) {
-    let log = format!("log:{}:{}", user_id, payload.deployment_id);
+  pub fn clear_log_if_exists(&self, user_id: &String, job_id: &String) {
+    let log = format!("log:{}:{}", user_id, job_id);
+
+    let mut db = self.db.lock().unwrap();
+    let check_existing_log: String = db.get(&log).unwrap_or("".to_string());
+
+    if check_existing_log != "" {
+      let _: () = db.del(log).unwrap();
+    }
+  }
+
+  pub fn write_log(&self, user_id: &String, deployment_id: &String, line: String) {
+    let log = format!("log:{}:{}", user_id, deployment_id);
     let line = format!("{} \n", line);
 
     let mut db = self.db.lock().unwrap();
     let _: () = db.append(log, line).unwrap();
   }
 
-  // TODO: Can we store `user_id` on context?
   pub fn status(&self, user_id: String, job_id: String) -> String {
     let job = format!("deployment:{}:{}", user_id, job_id);
 

@@ -30,11 +30,13 @@ pub async fn create_job(
     }));
   }
 
-  job.update_job_status(&user_id, &payload, String::from("BUILDING"));
+  job.clear_log_if_exists(&user_id, &payload.deployment_id);
+  job.update_job_status(&user_id, &payload.deployment_id, String::from("BUILDING"));
 
   let args = format!(
-    "ci/run.sh '{}' {}",
+    "ci/run.sh '{}' '{}' {}",
     set_env_vars(&payload).trim(),
+    payload.deployment_id,
     payload.project_build_command.trim()
   );
 
@@ -53,20 +55,55 @@ pub async fn create_job(
     while let Some(line) = reader.next_line().await.unwrap() {
       debug!("{}", line);
 
-      job.write_log(&user_id, &payload, line);
+      job.write_log(&user_id, &payload.deployment_id, line);
     }
 
     let status = cmd.await.expect("child process encountered an error");
 
-    if status.success() {
-      job.update_job_status(&user_id, &payload, String::from("READY"));
-    } else {
-      job.update_job_status(&user_id, &payload, String::from("ERROR"));
+    match status.code() {
+      Some(137) => {
+        job.update_job_status(&user_id, &payload.deployment_id, String::from("CANCELED"))
+      }
+      Some(0) => job.update_job_status(&user_id, &payload.deployment_id, String::from("READY")),
+      _ => job.update_job_status(&user_id, &payload.deployment_id, String::from("ERROR")),
     }
   });
 
   Ok(warp::reply::json(&Response {
     data: String::from("OK"),
+  }))
+}
+
+pub async fn cancel_job(
+  job_id: String,
+  user_id: String,
+  job: Job,
+) -> Result<impl Reply, Infallible> {
+  let is_job_running = job.is_current_job_running(&user_id, &job_id);
+
+  if is_job_running == false {
+    return Ok(warp::reply::json(&Response {
+      data: String::from("Nothing to cancel"),
+    }));
+  }
+
+  let cmd = Command::new("bash")
+    .arg("-c")
+    .arg(format!("ci/stop.sh {}", job_id))
+    .stdout(Stdio::inherit())
+    .spawn()
+    .expect("failed to execute process");
+
+  tokio::spawn(async move {
+    let status = cmd.await.expect("child process encountered an error");
+
+    if !status.success() {
+      warn!("Failed to cancel job for id {}", &job_id);
+    }
+  });
+
+  Ok(warp::reply::json(&Response {
+    data: String::from("Queued for cancellation"),
   }))
 }
 
