@@ -21,30 +21,53 @@ As far as I know, the build process is like this:
 - [ ] Build the project (incremental build is better)
 - [x] Save cache (both for deps & cache artifacts)
 - [ ] Upload artifacts
-- [ ] Handle error signal from docker
+- [x] Handle error signal from docker
 
-This is still work in progress, so the example payload can be find on `main.rs`.
+To trigger new job/deployment, send POST request to `/job/create` with following payload:
 
-```rs
-let mut example_job = job::Job::new(
-  redis_instance, // redis instance for storing log & build status
-  String::from("p_ke4guri8dh2pgpx"), // project Id (for deps cache)
-  String::from("d_fj2icskbtuo9odz"), // deployment Id
-  String::from("master"), // (project) repo branch
-  String::from("https://github.com/evilfactorylabs/alchemy.git"), // (project) repo url
-  String::from("'npm run build && npm run export'"), // (project) build command
-  String::from("npm"), // (project) package manager
-  String::from("out"), // (project) dist directory
-);
+```json
+{
+  "project_id": String,
+  "deployment_id": String,
+  "project_branch": String,
+  "project_repo_url": String,
+  "project_build_command": String,
+  "project_package_manager": String,
+  "project_dist_directory": String
+}
 ```
+
+Also, you need `Authorization` header with JWT format. Currently the JWT payload is like this:
+
+```json
+{
+  "user_id": String
+}
+```
+
+`user_id` is required for storing job status & log into Redis database as an identifier.
+
+Example:
+
+```bash
+curl -X "POST" "<protocol>://<host>:<port>/job/create" \
+     -H 'Authorization: Bearer <jwt token>' \
+     -d $'{
+  "project_id": "ke4guri8dh2pgpx",
+  "deployment_id": "fj2icskbtuo9odx",
+  "project_branch": "master",
+  "project_repo_url": "https://github.com/evilfactorylabs/alchemy.git",
+  "project_build_command": "'"'"'npm run build && npm run export'"'"'",
+  "project_package_manager": "npm",
+  "project_dist_directory": "out"
+}'
+
+```
+
+If the response is `200`, the "build" job will start to run.
 
 Payload above will run "build process" for `deployment_id` of `project_id` using `repo_url` as source
 and `build_command` as build command. Very obvious.
-
-## Problem
-
-As today, we are very rely on `stdout` to store the log process into redis database. The problem,
-currently we can't capture the "trap" exit (via SIGTERM) to test, so that's why I push the code for getting help!
 
 ## Run in development
 
