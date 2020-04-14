@@ -53,13 +53,13 @@ Example:
 curl -X "POST" "<protocol>://<host>:<port>/job/create" \
      -H 'Authorization: Bearer <jwt token>' \
      -d $'{
-  "project_id": "ke4guri8dh2pgpx",
-  "deployment_id": "fj2icskbtuo9odx",
-  "project_branch": "master",
-  "project_repo_url": "https://github.com/evilfactorylabs/alchemy.git",
-  "project_build_command": "'"'"'npm run build && npm run export'"'"'",
-  "project_package_manager": "npm",
-  "project_dist_directory": "out"
+  "project_id": "project_id_commonly_for_caching_thing",
+  "deployment_id": "deployment_id",
+  "project_branch": "project_branch",
+  "project_repo_url": "project_repo_url",
+  "project_build_command": "'"project_build_command"'",
+  "project_package_manager": "project_package_manager",
+  "project_dist_directory": "project_dist_directory"
 }'
 
 ```
