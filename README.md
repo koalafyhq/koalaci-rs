@@ -27,13 +27,13 @@ To trigger new job/deployment, send POST request to `/job/create` with following
 
 ```json
 {
-  "project_id": String,
-  "deployment_id": String,
-  "project_branch": String,
-  "project_repo_url": String,
-  "project_build_command": String,
-  "project_package_manager": String,
-  "project_dist_directory": String
+  "project_id": "String",
+  "deployment_id": "String",
+  "project_branch": "String",
+  "project_repo_url": "String",
+  "project_build_command": "String",
+  "project_package_manager": "String",
+  "project_dist_directory": "String"
 }
 ```
 
@@ -41,7 +41,7 @@ Also, you need `Authorization` header with JWT format. Currently the JWT payload
 
 ```json
 {
-  "user_id": String
+  "user_id": "String"
 }
 ```
 
