@@ -23,6 +23,13 @@ As far as I know, the build process is like this:
 - [ ] Upload artifacts
 - [x] Handle error signal from docker
 
+Currently this app can handle *only* Node.js environment with `npm` and `yarn` as package manager. For the roadmap,
+the following features is on the list:
+
+- [ ] Ability to use custom Node version (via `engines` on `package.json` or `.nvmrc`). Otherwise, fallback to the default version (LTS)
+- [ ] Support Go environment (hello Hugo users!)
+- [ ] TBD
+
 To trigger new job/deployment, send POST request to `/job/create` with following payload:
 
 ```json
