@@ -19,9 +19,23 @@ trap 'exit' ERR
 
 cmd=$*
 
-# TODO: Handle for general purpose
-mkdir -p /opt/.npm
-npm config set cache /opt/.npm
+local start_job=`date +%s`
+local koalaci_dir=/opt/koalaci
+
+mkdir -p koalaci_dir
+
+# custom npm/yarn cache dir
+mkdir -p /opt/.npm_cache
+mkdir -p /opt/.yarn_cache
+
+# TODO: handle nvm/n things
+local node_ver=$(node -v)
+
+local deps_cache_dir=.${PROJECT_PACKAGE_MANAGER}_cache
+local deps_cache_archive=node-${node_ver}-${PROJECT_PACKAGE_MANAGER}-${PROJECT_ID}.tar.gz
+
+npm config set cache /opt/.npm_cache > /dev/null 2>&1
+yarn config set cache-folder /opt/.yarn_cache > /dev/null 2>&1
 
 echo "Getting project"
 git clone ${PROJECT_REPO_URL} ${DEPLOYMENT_ID} > /dev/null 2>&1
@@ -29,18 +43,24 @@ git clone ${PROJECT_REPO_URL} ${DEPLOYMENT_ID} > /dev/null 2>&1
 cd ${DEPLOYMENT_ID}
 git checkout ${PROJECT_REPO_BRANCH} > /dev/null 2>&1
 
-echo "Downloading build cache"
+echo "Looking up deps cache, package manager using $PROJECT_PACKAGE_MANAGER with node $node_ver"
 
-if test -f "/tmp/${PROJECT_ID}.tar.gz"; then
-  echo "Cache exists, extracting"
-  tar -xzf /tmp/${PROJECT_ID}.tar.gz -C /opt/.npm
+if test -f "${koalaci_dir}/$deps_cache_archive"; then
+  echo "Cache exist, restoring"
+  tar -xzf ${koalaci_dir}/${deps_cache_archive} -C /opt/${deps_cache_dir}
 else
-  echo "Cache not exists"
+  echo "Cache not exist"
 fi
 
-echo "Installing project dependencies"
+echo "Installing project dependencies using $PROJECT_PACKAGE_MANAGER"
 
-${PROJECT_PACKAGE_MANAGER} ci
+if [ $PROJECT_PACKAGE_MANAGER == "npm" ]
+then
+  npm ci
+elif [ $PROJECT_PACKAGE_MANAGER == "yarn" ]
+then
+  yarn install --frozen-lockfile
+fi
 
 echo "Building project with command $cmd"
 
@@ -48,37 +68,21 @@ eval "$cmd"
 
 echo "Uploading build artifacts"
 
-file="${DEPLOYMENT_ID}.tar.gz"
+cd ${PROJECT_DIST_DIRECTORY}
 
-tar -czf ${file} ${PROJECT_DIST_DIRECTORY}
-
-# TODO: change this
-bucket="minio"
-host="s3-127-0-0-1.nip.io"
-s3_key="minioadmin"
-s3_secret="minioadmin"
-
-resource="/${bucket}/${file}"
-content_type="application/octet-stream"
-date=`date -R`
-_signature="PUT\n\n${content_type}\n${date}\n${resource}"
-signature=`echo -en ${_signature} | openssl sha1 -hmac ${s3_secret} -binary | base64`
-
-# curl -v -X PUT -T "$file" \
-#         -H "Date: ${date}" \
-#         -H "Content-Type: ${content_type}" \
-#         -H "Host: ${host}" \
-#         -H "Authorization: AWS ${s3_key}:${signature}" \
-#         https://$host${resource}
+tar -czf ${koalaci_dir}/${DEPLOYMENT_ID}.tar.gz .
 
 echo "Saving build cache"
 
-cd /opt/.npm
+cd /opt/${deps_cache_dir}
 
-tar -czf /tmp/${PROJECT_ID}.tar.gz .
+tar -czf ${koalaci_dir}/${deps_cache_archive} .
+
+local end_job=`date +%s`
+local elapsed=$((end_job-start_job))
+
+echo "Done in $(((elapsed % 3600) / 60))m$(((elapsed % 3600) % 60))s"
 
 CODE=$?
-
-echo "Done"
 
 exit $CODE
