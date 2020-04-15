@@ -10,8 +10,7 @@ pub struct Model {
 
 impl Model {
   pub fn new() -> Model {
-    // TODO: change this to ENV
-    let redis_host = "redis://127.0.0.1/";
+    let redis_host = std::env::var("REDIS_HOST").expect("REDIS_HOST should be provided");
     let redis_client = redis::Client::open(redis_host).expect("cannot open redis client");
     let redis = redis_client
       .get_connection()
