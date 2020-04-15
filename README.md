@@ -69,13 +69,17 @@ If the response is `200`, the "build" job will start to run.
 Payload above will run "build process" for `deployment_id` of `project_id` using `repo_url` as source
 and `build_command` as build command. Very obvious.
 
+## High-level concept
+
+![](https://s3.edgyfn.app/koalafy/misc/3e5b0b928ba194a46e3c23d1804640a9.png)
+
 ## Run in development
 
 Just run `cargo run`. For more verbose logging, you can set `RUST_LOG` with `trace` level so all log will appear
 in `stdout`:
 
 ```bash
-RUST_LOG=trace cargo run
+JWT_SECRET=<some_jwt_secret> REDIS_HOST=<some_redis_host> RUST_LOG=trace cargo run
 ```
 
 Also, you need `koalaci` (docker) image for this. Build it (~900MB) by running this command:
@@ -88,3 +92,78 @@ In case there are permission-related error related with `.sh` file, make sure to
 execute permission by using `chmod +x`.
 
 And yes, make sure Redis is listening into default host & port.
+
+## API
+
+This app is (User) Interface & Auth free, it means like "bring your own UI & Authentication strategy". Currently we're using
+[JWT](https://jwt.io) for authorization & [JSON](https://www.json.org/json-en.html) for view. Its commonly used in web
+application development so its not a big deal.
+
+Currently each endpoint is requiring **Authorization: Bearer `<token>`** header in each request, where the `<token>` is
+base64-encoded string of JWT.
+
+### Create Job
+
+Method: **POST** — Endpoint: `/job/create`
+
+Payload & response:
+
+```
+// payload
+
+{
+  "project_id": "String",
+  "deployment_id": "String",
+  "project_branch": "String",
+  "project_repo_url": "String",
+  "project_build_command": "'String'",
+  "project_package_manager": "String",
+  "project_dist_directory": "String"
+}
+
+// response 200/401/500
+
+{
+  "data": "OK"
+}
+```
+
+### Get Job log
+
+Method: **Get** — Endpoint: `/job/:id/log`
+
+Response:
+
+```
+// response 200/401/404/500
+
+{
+  "data": "Some long job log"
+}
+```
+
+### Cancel Running Job
+
+Method: **Patch** — Endpoint: `/job/:id/cancel`
+
+Response:
+
+```
+// response 200/401/404/500
+
+{
+  "data": "Queued for cancellation"
+}
+```
+
+
+## Deployment
+
+This app is bundled into Container Image, with `rust:stable` as a base image and `docker:stable` as runtime
+image. We use docker in docker (fortunately it was Alpine!) and mounting the local `/var/run/docker.sock` so we can
+call docker command (inside docker container) on the docker host.
+
+We use docker-in-docker approach to make sure the "build" process is isolated from any interruption and
+to avoid some unexpected side-effect ;)
+
+Also, we mount local directory into `/opt/koalaci` in container for caching & artifacts things, so make sure to configure it.
