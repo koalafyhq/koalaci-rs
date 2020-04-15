@@ -19,14 +19,13 @@ impl reject::Reject for AuthRejection {}
 
 // Middleware for validating JWT
 pub fn with_auth() -> impl Filter<Extract = (String,), Error = Rejection> + Copy {
-  warp::header::<String>("Authorization").and_then(|mut token: String| {
+  warp::header::<String>("Authorization").and_then(|token: String| {
     async move {
-      // TODO: change this to ENV
-      let secret = b"th1s1ss0v3rys3cr3ttrustM3";
+      let secret = std::env::var("JWT_SECRET").expect("JWT_SECRET should be provided");
+      let secret = secret.as_bytes();
 
-      // TODO: try more elegant way
       if token.len() < 7 {
-        token = String::from("invalid_token");
+        return Err(reject::custom(AuthRejection));
       };
 
       // ignore the Bearer part
